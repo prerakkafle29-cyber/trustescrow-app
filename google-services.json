@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "157580045034",
+    "project_id": "trustescrow-841a5",
+    "storage_bucket": "trustescrow-841a5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:157580045034:android:305640cc20100f274c0593",
+        "android_client_info": {
+          "package_name": "com.example.trustescrow"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqRMeRWx5MpvwAT3vqJexHV5knVo7wiVg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:157580045034:android:4d29f02f9fc7c5cd4c0593",
+        "android_client_info": {
+          "package_name": "com.trustescrow.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqRMeRWx5MpvwAT3vqJexHV5knVo7wiVg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
