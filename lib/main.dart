@@ -37,7 +37,8 @@ class HomeScreen extends StatelessWidget {
       body: const Center(
         child: Text(
           'Welcome to TrustEscrow',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          
         ),
       ),
     );
