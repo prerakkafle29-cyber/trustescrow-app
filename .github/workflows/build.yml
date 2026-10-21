@@ -24,7 +24,7 @@ jobs:
           cache: true
 
       - name: Fix Gradle / Project Structure
-        run: flutter create . --platforms=android --org com.cyber.trustescrow
+        run: flutter create . --project-name trustescrow_app --platforms=android --org com.cyber.trustescrow
 
       - name: Install Dependencies
         run: flutter pub get
