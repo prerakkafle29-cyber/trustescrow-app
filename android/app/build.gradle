@@ -37,12 +37,14 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.trustescrow.app"
-        minSdkVersion 21
-        targetSdkVersion 34
-        versionCode flutterVersionCode.toInteger()
-        versionName flutterVersionName
-    }
+    applicationId "com.trustescrow.app"
+    minSdkVersion flutter.minSdkVersion
+    targetSdkVersion flutter.targetSdkVersion
+    versionCode flutterVersionCode.toInteger()
+    versionName flutterVersionName
+    multiDexEnabled true
+}
+
 
     buildTypes {
         release {
