@@ -26,10 +26,18 @@ jobs:
       - name: Generate Android Structure
         run: flutter create . --project-name trustescrow_app --platforms=android --org com.cyber.trustescrow
 
-      - name: Enable Multidex in Gradle
+      - name: Force Enable Multidex in Gradle
         run: |
-          sed -i 's/defaultConfig {/defaultConfig {\n        multiDexEnabled true/' android/app/build.gradle
-          sed -i 's/dependencies {/dependencies {\n    implementation "com.android.support:multidex:1.0.3"/' android/app/build.gradle
+          # Inject multiDexEnabled into defaultConfig
+          python3 -c "
+          path = 'android/app/build.gradle'
+          with open(path, 'r') as f:
+              content = f.read()
+          content = content.replace('defaultConfig {', 'defaultConfig {\n        multiDexEnabled true')
+          content = content.replace('dependencies {', 'dependencies {\n    implementation \'androidx.multidex:multidex:2.0.1\'')
+          with open(path, 'w') as f:
+              f.write(content)
+          "
 
       - name: Add Firebase Dependencies
         run: |
