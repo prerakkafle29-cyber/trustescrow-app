@@ -23,8 +23,7 @@ jobs:
           flutter-version: '3.19.0'
           cache: true
 
-      - name: Fix Project Structure
-        run: flutter create . --project-name trustescrow_app --platforms=android --org com.cyber.trustescrow
+      
 
       - name: Add Firebase Dependencies
         run: |
