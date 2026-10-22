@@ -46,17 +46,16 @@ android {
 }
 
 
-    buildTypes {
+            buildTypes {
         release {
             signingConfig signingConfigs.debug
             minifyEnabled false
-            shrinkResources false
         }
         debug {
-            minifyEnabled false
-            shrinkResources false
+            signingConfig signingConfigs.debug
         }
     }
+
 
 
 flutter {
