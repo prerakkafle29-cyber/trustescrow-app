@@ -10,7 +10,7 @@ if (localPropertiesFile.exists()) {
     localPropertiesFile.withReader('UTF-8') { reader ->
         localProperties.load(reader)
     }
-    
+}
 
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
 if (flutterVersionCode == null) {
@@ -37,16 +37,15 @@ android {
     }
 
     defaultConfig {
-    applicationId "com.trustescrow.app"
-    minSdkVersion flutter.minSdkVersion
-    targetSdkVersion flutter.targetSdkVersion
-    versionCode flutterVersionCode.toInteger()
-    versionName flutterVersionName
-    multiDexEnabled true
-}
+        applicationId "com.trustescrow.app"
+        minSdkVersion flutter.minSdkVersion
+        targetSdkVersion flutter.targetSdkVersion
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+        multiDexEnabled true
+    }
 
-
-            buildTypes {
+    buildTypes {
         release {
             signingConfig signingConfigs.debug
             minifyEnabled false
@@ -54,11 +53,8 @@ android {
         debug {
             signingConfig signingConfigs.debug
         }
-                     }
+    }
 }
-
-
-
 
 flutter {
     source '../..'
@@ -68,5 +64,5 @@ dependencies {
     implementation 'androidx.multidex:multidex:2.0.1'
 }
 
-
 apply plugin: 'com.google.gms.google-services'
+
