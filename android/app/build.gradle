@@ -54,7 +54,9 @@ android {
         debug {
             signingConfig signingConfigs.debug
         }
-    }
+                     }
+}
+
 
 
 
