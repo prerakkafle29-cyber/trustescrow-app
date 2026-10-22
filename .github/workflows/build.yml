@@ -26,10 +26,10 @@ jobs:
       - name: Generate Clean Android Structure
         run: flutter create . --project-name trustescrow_app --platforms=android --org com.cyber.trustescrow
 
-      - name: Configure Multidex & Application Class
+      - name: Safely Configure Gradle & Manifest
         run: |
           python3 -c "
-          # 1. Update build.gradle for Multidex
+          # 1. Add multiDexEnabled to build.gradle safely
           gradle_path = 'android/app/build.gradle'
           with open(gradle_path, 'r') as f:
               content = f.read()
@@ -40,12 +40,19 @@ jobs:
           with open(gradle_path, 'w') as f:
               f.write(content)
 
-          # 2. Update AndroidManifest.xml for MultiDexApplication
+          # 2. Safely add android:name to AndroidManifest.xml without breaking XML
           manifest_path = 'android/app/src/main/AndroidManifest.xml'
           with open(manifest_path, 'r') as f:
               manifest = f.read()
-          if 'androidx.multidex.MultiDexApplication' not in manifest:
-              manifest = manifest.replace('<application', '<application\n        android:name=\"androidx.multidex.MultiDexApplication\"')
+          
+          if 'android:name=\"androidx.multidex.MultiDexApplication\"' not in manifest:
+              if 'android:name=' in manifest:
+                  # Replace existing android:name value safely
+                  import re
+                  manifest = re.sub(r'android:name=\"[^\"]*\"', 'android:name=\"androidx.multidex.MultiDexApplication\"', manifest, count=1)
+              else:
+                  manifest = manifest.replace('<application', '<application android:name=\"androidx.multidex.MultiDexApplication\"')
+              
               with open(manifest_path, 'w') as f:
                   f.write(manifest)
           "
