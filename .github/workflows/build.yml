@@ -23,6 +23,38 @@ jobs:
           flutter-version: '3.19.0'
           cache: true
 
+      - name: Generate Clean Android Structure
+        run: flutter create . --project-name trustescrow_app --platforms=android --org com.cyber.trustescrow
+
+      - name: Configure Multidex & Application Class
+        run: |
+          python3 -c "
+          # 1. Update build.gradle for Multidex
+          gradle_path = 'android/app/build.gradle'
+          with open(gradle_path, 'r') as f:
+              content = f.read()
+          if 'multiDexEnabled true' not in content:
+              content = content.replace('defaultConfig {', 'defaultConfig {\n        multiDexEnabled true')
+          if 'androidx.multidex:multidex' not in content:
+              content = content.replace('dependencies {', 'dependencies {\n    implementation \'androidx.multidex:multidex:2.0.1\'')
+          with open(gradle_path, 'w') as f:
+              f.write(content)
+
+          # 2. Update AndroidManifest.xml for MultiDexApplication
+          manifest_path = 'android/app/src/main/AndroidManifest.xml'
+          with open(manifest_path, 'r') as f:
+              manifest = f.read()
+          if 'androidx.multidex.MultiDexApplication' not in manifest:
+              manifest = manifest.replace('<application', '<application\n        android:name=\"androidx.multidex.MultiDexApplication\"')
+              with open(manifest_path, 'w') as f:
+                  f.write(manifest)
+          "
+
+      - name: Add Firebase Dependencies
+        run: |
+          flutter pub add firebase_core:^2.27.0
+          flutter pub add firebase_auth:^4.17.8
+
       - name: Install Dependencies
         run: flutter pub get
 
