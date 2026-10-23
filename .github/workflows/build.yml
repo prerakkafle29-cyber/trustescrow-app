@@ -23,6 +23,9 @@ jobs:
           flutter-version: '3.19.0'
           cache: true
 
+      - name: Install Dependencies FIRST
+        run: flutter pub get
+
       - name: Save google-services.json if exists
         run: |
           if [ -f "android/app/google-services.json" ]; then
@@ -37,9 +40,6 @@ jobs:
           if [ -f "/tmp/google-services.json" ]; then
             cp /tmp/google-services.json android/app/google-services.json
           fi
-
-      - name: Install Dependencies FIRST
-        run: flutter pub get
 
       - name: Configure Multidex & Manifest safely
         run: |
