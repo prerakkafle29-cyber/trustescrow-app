@@ -38,6 +38,9 @@ jobs:
             cp /tmp/google-services.json android/app/google-services.json
           fi
 
+      - name: Install Dependencies FIRST
+        run: flutter pub get
+
       - name: Configure Multidex & Manifest safely
         run: |
           python3 -c "
@@ -67,9 +70,6 @@ jobs:
               with open(manifest_path, 'w') as f:
                   f.write(manifest)
           "
-
-      - name: Install Dependencies
-        run: flutter pub get
 
       - name: Build APK
         run: flutter build apk --debug
