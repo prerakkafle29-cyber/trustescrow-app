@@ -21,7 +21,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.0'
-          cache: true
+          cache: false
 
       - name: Save google-services.json if it exists
         run: |
@@ -42,8 +42,11 @@ jobs:
             cp /tmp/google-services.json android/app/google-services.json
           fi
 
-      - name: Install Dependencies
-        run: flutter pub get
+      - name: Clean Cache and Get Dependencies
+        run: |
+          flutter pub cache clean -f
+          rm -f pubspec.lock
+          flutter pub get
 
       - name: Configure Multidex & Manifest
         run: |
