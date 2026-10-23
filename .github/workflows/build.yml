@@ -23,10 +23,25 @@ jobs:
           flutter-version: '3.19.0'
           cache: true
 
-      - name: Ensure Multidex & Manifest are Configured
+      - name: Save google-services.json if exists
+        run: |
+          if [ -f "android/app/google-services.json" ]; then
+            cp android/app/google-services.json /tmp/google-services.json
+          fi
+
+      - name: Generate Android Scaffold safely
+        run: flutter create . --project-name trustescrow_app --platforms=android --org com.cyber.trustescrow
+
+      - name: Restore google-services.json
+        run: |
+          if [ -f "/tmp/google-services.json" ]; then
+            cp /tmp/google-services.json android/app/google-services.json
+          fi
+
+      - name: Configure Multidex & Manifest safely
         run: |
           python3 -c "
-          # 1. Add multiDexEnabled and dependency to build.gradle safely
+          # 1. Add multiDexEnabled and dependency to build.gradle
           gradle_path = 'android/app/build.gradle'
           with open(gradle_path, 'r') as f:
               content = f.read()
@@ -37,7 +52,7 @@ jobs:
           with open(gradle_path, 'w') as f:
               f.write(content)
 
-          # 2. Safely add MultiDexApplication to AndroidManifest.xml
+          # 2. Add MultiDexApplication to AndroidManifest.xml safely
           manifest_path = 'android/app/src/main/AndroidManifest.xml'
           with open(manifest_path, 'r') as f:
               manifest = f.read()
