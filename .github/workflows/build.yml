@@ -23,25 +23,32 @@ jobs:
           flutter-version: '3.19.0'
           cache: true
 
-      - name: Install Dependencies FIRST
-        run: flutter pub get
-
       - name: Save google-services.json if exists
         run: |
           if [ -f "android/app/google-services.json" ]; then
             cp android/app/google-services.json /tmp/google-services.json
           fi
 
-      - name: Generate Android Scaffold safely
+      - name: Save pubspec files
+        run: |
+          cp pubspec.yaml /tmp/pubspec.yaml
+          if [ -f "pubspec.lock" ]; then cp pubspec.lock /tmp/pubspec.lock; fi
+
+      - name: Generate Android Scaffold
         run: flutter create . --project-name trustescrow_app --platforms=android --org com.cyber.trustescrow
 
-      - name: Restore google-services.json
+      - name: Restore original pubspec & google-services
         run: |
+          cp /tmp/pubspec.yaml pubspec.yaml
+          if [ -f "/tmp/pubspec.lock" ]; then cp /tmp/pubspec.lock pubspec.lock; fi
           if [ -f "/tmp/google-services.json" ]; then
             cp /tmp/google-services.json android/app/google-services.json
           fi
 
-      - name: Configure Multidex & Manifest safely
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Configure Multidex & Manifest
         run: |
           python3 -c "
           # 1. Add multiDexEnabled and dependency to build.gradle
@@ -55,7 +62,7 @@ jobs:
           with open(gradle_path, 'w') as f:
               f.write(content)
 
-          # 2. Add MultiDexApplication to AndroidManifest.xml safely
+          # 2. Add MultiDexApplication to AndroidManifest.xml
           manifest_path = 'android/app/src/main/AndroidManifest.xml'
           with open(manifest_path, 'r') as f:
               manifest = f.read()
