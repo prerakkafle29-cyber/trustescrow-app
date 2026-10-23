@@ -23,13 +23,10 @@ jobs:
           flutter-version: '3.19.0'
           cache: true
 
-      - name: Generate Clean Android Structure
-        run: flutter create . --project-name trustescrow_app --platforms=android --org com.cyber.trustescrow
-
-      - name: Safely Configure Gradle & Manifest
+      - name: Ensure Multidex & Manifest are Configured
         run: |
           python3 -c "
-          # 1. Add multiDexEnabled to build.gradle safely
+          # 1. Add multiDexEnabled and dependency to build.gradle safely
           gradle_path = 'android/app/build.gradle'
           with open(gradle_path, 'r') as f:
               content = f.read()
@@ -40,15 +37,14 @@ jobs:
           with open(gradle_path, 'w') as f:
               f.write(content)
 
-          # 2. Safely add android:name to AndroidManifest.xml without breaking XML
+          # 2. Safely add MultiDexApplication to AndroidManifest.xml
           manifest_path = 'android/app/src/main/AndroidManifest.xml'
           with open(manifest_path, 'r') as f:
               manifest = f.read()
           
-          if 'android:name=\"androidx.multidex.MultiDexApplication\"' not in manifest:
+          if 'androidx.multidex.MultiDexApplication' not in manifest:
+              import re
               if 'android:name=' in manifest:
-                  # Replace existing android:name value safely
-                  import re
                   manifest = re.sub(r'android:name=\"[^\"]*\"', 'android:name=\"androidx.multidex.MultiDexApplication\"', manifest, count=1)
               else:
                   manifest = manifest.replace('<application', '<application android:name=\"androidx.multidex.MultiDexApplication\"')
@@ -56,11 +52,6 @@ jobs:
               with open(manifest_path, 'w') as f:
                   f.write(manifest)
           "
-
-      - name: Add Firebase Dependencies
-        run: |
-          flutter pub add firebase_core:^2.27.0
-          flutter pub add firebase_auth:^4.17.8
 
       - name: Install Dependencies
         run: flutter pub get
