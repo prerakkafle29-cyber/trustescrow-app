@@ -52,17 +52,20 @@ jobs:
       - name: Configure Gradle, Multidex & Google Services
         run: |
           python3 -c "
-          # 1. Add google-services classpath to project-level build.gradle if needed
+          # 1. Ensure buildscript classpath is added to root android/build.gradle
           root_gradle = 'android/build.gradle'
           with open(root_gradle, 'r') as f:
               r_content = f.read()
           if 'com.google.gms:google-services' not in r_content:
-              if 'dependencies {' in r_content:
-                  r_content = r_content.replace('dependencies {', 'dependencies {\n        classpath \"com.google.gms:google-services:4.4.1\"')
+              if 'buildscript {' in r_content:
+                  r_content = r_content.replace('dependencies {', 'dependencies {\n        classpath \"com.google.gms:google-services:4.4.1\"', 1)
+              else:
+                  buildscript_code = 'buildscript {\n    repositories {\n        google()\n        mavenCentral()\n    }\n    dependencies {\n        classpath \"com.google.gms:google-services:4.4.1\"\n    }\n}\n\n'
+                  r_content = buildscript_code + r_content
               with open(root_gradle, 'w') as f:
                   f.write(r_content)
 
-          # 2. Add multiDex, dependency, and google-services plugin to app-level build.gradle
+          # 2. Add multiDex, dependency, and apply google-services plugin to app-level build.gradle
           gradle_path = 'android/app/build.gradle'
           with open(gradle_path, 'r') as f:
               content = f.read()
@@ -72,7 +75,6 @@ jobs:
           if 'androidx.multidex:multidex' not in content:
               content = content.replace('dependencies {', 'dependencies {\n    implementation \'androidx.multidex:multidex:2.0.1\'')
           
-          # Apply google-services plugin at the bottom if not present
           if 'com.google.gms.google-services' not in content:
               content += '\napply plugin: \"com.google.gms.google-services\"\n'
 
