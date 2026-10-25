@@ -31,7 +31,7 @@ jobs:
 
       - name: Generate fresh Android Scaffold safely
         run: |
-          flutter create temp_android_gen --platforms=android --org com.cyber.trustescrow --project-name trustescrow_app
+          flutter create temp_android_gen --platforms=android --org com.cyber --project-name trustescrow
           rm -rf android
           cp -r temp_android_gen/android ./android
 
