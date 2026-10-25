@@ -42,10 +42,9 @@ jobs:
             cp /tmp/google-services.json android/app/google-services.json
           fi
 
-      - name: Clean Cache and Get Dependencies
+      - name: Wipe Stale Caches and Get Dependencies
         run: |
-          flutter pub cache clean -f
-          rm -f pubspec.lock
+          rm -rf .dart_tool build pubspec.lock
           flutter pub get
 
       - name: Configure Multidex & Manifest
