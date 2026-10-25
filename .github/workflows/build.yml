@@ -49,21 +49,37 @@ jobs:
           rm -f pubspec.lock
           flutter pub get
 
-      - name: Configure Multidex & Manifest
+      - name: Configure Gradle, Multidex & Google Services
         run: |
           python3 -c "
-          # 1. Add multiDexEnabled and dependency to build.gradle
+          # 1. Add google-services classpath to project-level build.gradle if needed
+          root_gradle = 'android/build.gradle'
+          with open(root_gradle, 'r') as f:
+              r_content = f.read()
+          if 'com.google.gms:google-services' not in r_content:
+              if 'dependencies {' in r_content:
+                  r_content = r_content.replace('dependencies {', 'dependencies {\n        classpath \"com.google.gms:google-services:4.4.1\"')
+              with open(root_gradle, 'w') as f:
+                  f.write(r_content)
+
+          # 2. Add multiDex, dependency, and google-services plugin to app-level build.gradle
           gradle_path = 'android/app/build.gradle'
           with open(gradle_path, 'r') as f:
               content = f.read()
+          
           if 'multiDexEnabled true' not in content:
               content = content.replace('defaultConfig {', 'defaultConfig {\n        multiDexEnabled true')
           if 'androidx.multidex:multidex' not in content:
               content = content.replace('dependencies {', 'dependencies {\n    implementation \'androidx.multidex:multidex:2.0.1\'')
+          
+          # Apply google-services plugin at the bottom if not present
+          if 'com.google.gms.google-services' not in content:
+              content += '\napply plugin: \"com.google.gms.google-services\"\n'
+
           with open(gradle_path, 'w') as f:
               f.write(content)
 
-          # 2. Add MultiDexApplication to AndroidManifest.xml
+          # 3. Add MultiDexApplication to AndroidManifest.xml
           manifest_path = 'android/app/src/main/AndroidManifest.xml'
           with open(manifest_path, 'r') as f:
               manifest = f.read()
