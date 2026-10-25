@@ -1,5 +1,5 @@
 name: trustescrow
-description: "A secure escrow Flutter app using Firebase Authentication."
+description: "A secure escrow Flutter app using Firebase Auth"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -11,9 +11,8 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-firebase_core: ^2.27.0
-firebase_auth: ^4.17.8
-
+  firebase_core: ^2.27.0
+  firebase_auth: ^4.17.8
 
 dev_dependencies:
   flutter_test:
