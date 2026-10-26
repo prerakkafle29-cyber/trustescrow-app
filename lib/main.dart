@@ -1,30 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  String? initError;
+
+  // Custom Error Widget to display crash details on screen
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            child: Text(
+              'App Crash Details:\n\n${details.exceptionAsString()}\n\n${details.stack}',
+              style: const TextStyle(color: Colors.red, fontSize: 14),
+            ),
+          ),
+        ),
+      ),
+    );
+  };
+
   try {
     await Firebase.initializeApp();
-  } catch (e, stackTrace) {
-    initError = "$e\n\n$stackTrace";
-  }
-
-  if (initError != null) {
+  } catch (e, stack) {
     runApp(
       MaterialApp(
-        debugShowCheckedModeBanner: false,
         home: Scaffold(
-          backgroundColor: Colors.white,
           body: SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: SingleChildScrollView(
                 child: Text(
-                  "Firebase Initialization Failed:\n\n$initError",
-                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                  'Firebase Init Failed:\n\n$e\n\n$stack',
+                  style: const TextStyle(color: Colors.red, fontSize: 14),
                 ),
               ),
             ),
@@ -32,29 +41,22 @@ void main() async {
         ),
       ),
     );
-  } else {
-    runApp(const TrustEscrowApp());
+    return;
   }
+
+  runApp(const MyApp());
 }
 
-class TrustEscrowApp extends StatelessWidget {
-  const TrustEscrowApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'TrustEscrow',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6200EE),
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-      ),
-      home: const Scaffold(
-        body: Center(
-          child: Text('TrustEscrow App Running!'),
+      home: Scaffold(
+        appBar: AppBar(title: const Text('TrustEscrow')),
+        body: const Center(
+          child: Text('App loaded successfully!'),
         ),
       ),
     );
