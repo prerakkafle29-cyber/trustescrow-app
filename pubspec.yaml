@@ -1,7 +1,6 @@
 name: trustescrow
-description: "A secure escrow Flutter app using Firebase Auth"
+description: "A secure escrow app"
 publish_to: 'none'
-
 version: 1.0.0+1
 
 environment:
