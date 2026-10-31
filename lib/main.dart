@@ -3,82 +3,65 @@ import 'package:firebase_core/firebase_core.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const TrustEscrowApp());
+  runApp(const DiagnosticApp());
 }
 
-class TrustEscrowApp extends StatelessWidget {
-  const TrustEscrowApp({super.key});
+class DiagnosticApp extends StatelessWidget {
+  const DiagnosticApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: FirebaseInitScreen(),
+      home: DiagnosticScreen(),
     );
   }
 }
 
-class FirebaseInitScreen extends StatefulWidget {
-  const FirebaseInitScreen({super.key});
+class DiagnosticScreen extends StatefulWidget {
+  const DiagnosticScreen({super.key});
 
   @override
-  State<FirebaseInitScreen> createState() => _FirebaseInitScreenState();
+  State<DiagnosticScreen> createState() => _DiagnosticScreenState();
 }
 
-class _FirebaseInitScreenState extends State<FirebaseInitScreen> {
-  bool _initialized = false;
-  String _errorMessage = '';
+class _DiagnosticScreenState extends State<DiagnosticScreen> {
+  String _status = 'Starting Firebase.initializeApp()...';
 
   @override
   void initState() {
     super.initState();
-    _initFirebase();
+    _testFirebaseCore();
   }
 
-  Future<void> _initFirebase() async {
+  Future<void> _testFirebaseCore() async {
     try {
-      await Firebase.initializeApp();
+      // Step A: Check if binding is alive
+      setState(() { _status = 'Binding OK. Calling Firebase.initializeApp()...'; });
+      
+      FirebaseApp app = await Firebase.initializeApp();
+      
       setState(() {
-        _initialized = true;
+        _status = 'SUCCESS!\nFirebase initialized: ${app.name}';
       });
     } catch (e, stack) {
       setState(() {
-        _errorMessage = '$e\n\n$stack';
+        _status = 'CAUGHT EXCEPTION:\n$e\n\nSTACKTRACE:\n$stack';
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_errorMessage.isNotEmpty) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Firebase Init Error')),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            child: Text(
-              _errorMessage,
-              style: const TextStyle(color: Colors.red, fontSize: 13),
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (!_initialized) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
     return Scaffold(
-      appBar: AppBar(title: const Text('TrustEscrow')),
-      body: const Center(
-        child: Text(
-          'App & Firebase Initialized Successfully!',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      appBar: AppBar(title: const Text('Firebase Diagnostic')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Text(
+            _status,
+            style: const TextStyle(fontSize: 14, fontFamily: 'monospace'),
+          ),
         ),
       ),
     );
