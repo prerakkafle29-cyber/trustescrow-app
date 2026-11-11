@@ -42,7 +42,7 @@ jobs:
             cp /tmp/google-services.json android/app/google-services.json
           fi
 
-      - name: Enforce Android V2 Embedding in Manifest & Gradle
+      - name: Configure Gradle, Multidex, V2 Embedding & Google Services Plugin
         run: |
           python3 -c "
           import json, re
@@ -55,7 +55,7 @@ jobs:
                   pkg_name = data['client'][0]['client_info']['android_client_info']['package_name']
                   print(f'Detected Package Name: {pkg_name}')
           except Exception as e:
-              print(f'No google-services.json package override: {e}')
+              print(f'No google-services.json override: {e}')
 
           # 2. Configure app build.gradle
           gradle_path = 'android/app/build.gradle'
@@ -71,10 +71,27 @@ jobs:
           if 'androidx.multidex:multidex' not in content:
               content = content.replace('dependencies {', 'dependencies {\n    implementation \'androidx.multidex:multidex:2.0.1\'')
 
+          # CRITICAL: Ensure Google Services plugin is applied
+          if 'com.google.gms.google-services' not in content:
+              content += '\napply plugin: \"com.google.gms.google-services\"\n'
+
           with open(gradle_path, 'w') as f:
               f.write(content)
 
-          # 3. Explicitly set V2 Embedding meta-data in AndroidManifest.xml
+          # 3. Configure root build.gradle classpath
+          root_gradle = 'android/build.gradle'
+          with open(root_gradle, 'r') as f:
+              r_content = f.read()
+          if 'com.google.gms:google-services' not in r_content:
+              if 'buildscript {' in r_content:
+                  r_content = r_content.replace('dependencies {', 'dependencies {\n        classpath \"com.google.gms:google-services:4.4.1\"', 1)
+              else:
+                  buildscript_code = 'buildscript {\n    repositories {\n        google()\n        mavenCentral()\n    }\n    dependencies {\n        classpath \"com.google.gms:google-services:4.4.1\"\n    }\n}\n\n'
+                  r_content = buildscript_code + r_content
+              with open(root_gradle, 'w') as f:
+                  f.write(r_content)
+
+          # 4. Explicitly set V2 Embedding in AndroidManifest.xml
           manifest_path = 'android/app/src/main/AndroidManifest.xml'
           with open(manifest_path, 'r') as f:
               manifest = f.read()
