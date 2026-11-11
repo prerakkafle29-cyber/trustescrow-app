@@ -47,7 +47,6 @@ class HomeScreen extends StatelessWidget {
             ),
             const Spacer(),
             Center(
-              fiter: ImageFiltered(imageFilter: ...), // placeholder
               child: ElevatedButton.icon(
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
