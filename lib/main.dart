@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const TrustEscrowApp());
 }
@@ -29,7 +31,7 @@ class EscrowDeal {
   final String party;
   final double amount;
   final String status;
-  final DateTime date;
+  final String dateStr;
 
   EscrowDeal({
     required this.id,
@@ -37,11 +39,29 @@ class EscrowDeal {
     required this.party,
     required this.amount,
     required this.status,
-    required this.date,
+    required this.dateStr,
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'party': party,
+        'amount': amount,
+        'status': status,
+        'dateStr': dateStr,
+      };
+
+  factory EscrowDeal.fromJson(Map<String, dynamic> json) => EscrowDeal(
+        id: json['id'],
+        title: json['title'],
+        party: json['party'],
+        amount: json['amount'],
+        status: json['status'],
+        dateStr: json['dateStr'],
+      );
 }
 
-// Auth Wrapper to handle Google Sign In state
+// Auth Wrapper with Persistent Session Check
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
@@ -50,17 +70,40 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
+  bool _isLoading = true;
   String? _userEmail;
   String? _userName;
 
-  void _login(String name, String email) {
+  @override
+  void initState() {
+    super.initState();
+    _checkSavedSession();
+  }
+
+  Future<void> _checkSavedSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userEmail = prefs.getString('saved_email');
+      _userName = prefs.getString('saved_name');
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _login(String name, String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_email', email);
+    await prefs.setString('saved_name', name);
     setState(() {
       _userName = name;
       _userEmail = email;
     });
   }
 
-  void _logout() {
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('saved_email');
+    await prefs.remove('saved_name');
+    await prefs.remove('saved_deals'); // Optional: clear deals on logout
     setState(() {
       _userName = null;
       _userEmail = null;
@@ -69,14 +112,24 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     if (_userEmail == null) {
       return GoogleSignInScreen(onSignIn: _login);
     }
-    return MainNavigationScreen(userEmail: _userEmail!, userName: _userName ?? 'User', onLogout: _logout);
+    return MainNavigationScreen(
+      userEmail: _userEmail!,
+      userName: _userName ?? 'User',
+      onLogout: _logout,
+    );
   }
 }
 
-// Google Sign-In Screen
+// Google Sign-In Screen with Strict Email Validation
 class GoogleSignInScreen extends StatefulWidget {
   final Function(String, String) onSignIn;
 
@@ -90,7 +143,7 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _nameController = TextEditingController();
-  bool _isLoading = false;
+  bool _isSigningIn = false;
 
   @override
   void dispose() {
@@ -101,9 +154,9 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
 
   void _handleGoogleSignIn() {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      Future.delayed(const Duration(seconds: 1), () {
-        setState(() => _isLoading = false);
+      setState(() => _isSigningIn = true);
+      Future.delayed(const Duration(milliseconds: 800), () {
+        setState(() => _isSigningIn = false);
         widget.onSignIn(_nameController.text.trim(), _emailController.text.trim());
       });
     }
@@ -142,7 +195,12 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                         prefixIcon: Icon(Icons.person_outline),
                         border: OutlineInputBorder(),
                       ),
-                      validator: (val) => val == null || val.isEmpty ? 'Please enter your name' : null,
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Please enter your name';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -154,11 +212,18 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                         border: OutlineInputBorder(),
                       ),
                       validator: (val) {
-                        if (val == null || val.isEmpty) {
+                        if (val == null || val.trim().isEmpty) {
                           return 'Please enter your email address';
                         }
-                        final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@gmail\.com$');
-                        if (!emailRegex.hasMatch(val.trim())) {
+                        // Strict RFC-compliant email regex checking for valid local part, domain, and proper TLD
+                        final strictEmailRegex = RegExp(
+                          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                        );
+                        final email = val.trim();
+                        if (!strictEmailRegex.hasMatch(email)) {
+                          return 'Invalid email format (e.g. name@gmail.com)';
+                        }
+                        if (!email.endsWith('@gmail.com')) {
                           return 'Must be a valid @gmail.com address';
                         }
                         return null;
@@ -175,8 +240,8 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                           side: const BorderSide(color: Colors.grey),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
-                        onPressed: _isLoading ? null : _handleGoogleSignIn,
-                        icon: _isLoading
+                        onPressed: _isSigningIn ? null : _handleGoogleSignIn,
+                        icon: _isSigningIn
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
@@ -184,7 +249,7 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                               )
                             : const Icon(Icons.g_mobiledata, size: 32, color: Colors.blue),
                         label: Text(
-                          _isLoading ? 'Signing in...' : 'Sign in with Google',
+                          _isSigningIn ? 'Signing in...' : 'Sign in with Google',
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                       ),
@@ -200,7 +265,7 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
   }
 }
 
-// Main Navigation Screen with 0 initial mock deals
+// Main Navigation Screen with Local Deals Persistence
 class MainNavigationScreen extends StatefulWidget {
   final String userEmail;
   final String userName;
@@ -219,16 +284,51 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
-  final List<EscrowDeal> _deals = [];
+  List<EscrowDeal> _deals = [];
+  bool _isDataLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDeals();
+  }
+
+  Future<void> _loadDeals() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dealsJson = prefs.getStringList('saved_deals');
+    if (dealsJson != null) {
+      setState(() {
+        _deals = dealsJson
+            .map((item) => EscrowDeal.fromJson(jsonDecode(item)))
+            .toList();
+        _isDataLoaded = true;
+      });
+    } else {
+      setState(() => _isDataLoaded = true);
+    }
+  }
+
+  Future<void> _saveDeals() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dealsJson = _deals.map((deal) => jsonEncode(deal.toJson())).toList();
+    await prefs.setStringList('saved_deals', dealsJson);
+  }
 
   void _addNewDeal(EscrowDeal deal) {
     setState(() {
       _deals.insert(0, deal);
     });
+    _saveDeals();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_isDataLoaded) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final screens = [
       DashboardTab(deals: _deals, onNewDeal: () => setState(() => _currentIndex = 2), userName: widget.userName),
       DealsListTab(deals: _deals),
@@ -296,7 +396,6 @@ class DashboardTab extends StatelessWidget {
           children: [
             Text('Welcome back, $userName!', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            // Balance Card
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -418,7 +517,7 @@ class DealsListTab extends StatelessWidget {
   }
 }
 
-// Tab 3: Create New Escrow Form with strict real email validation
+// Tab 3: Create New Escrow Form with Strict Counterparty Email Validation
 class CreateDealTab extends StatefulWidget {
   final Function(EscrowDeal) onCreate;
   final VoidCallback onSuccess;
@@ -455,7 +554,7 @@ class _CreateDealTabState extends State<CreateDealTab> {
         party: _partyController.text.trim(),
         amount: double.parse(_amountController.text.trim()),
         status: 'In Escrow',
-        date: DateTime.now(),
+        dateStr: DateTime.now().toString(),
       );
       widget.onCreate(newDeal);
       _titleController.clear();
@@ -485,7 +584,7 @@ class _CreateDealTabState extends State<CreateDealTab> {
                   labelText: 'Deal Title / Service',
                   border: OutlineInputBorder(),
                 ),
-                validator: (val) => val == null || val.isEmpty ? 'Enter deal title' : null,
+                validator: (val) => val == null || val.trim().isEmpty ? 'Enter deal title' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -497,12 +596,14 @@ class _CreateDealTabState extends State<CreateDealTab> {
                   prefixIcon: Icon(Icons.alternate_email),
                 ),
                 validator: (val) {
-                  if (val == null || val.isEmpty) {
+                  if (val == null || val.trim().isEmpty) {
                     return 'Enter counterparty email';
                   }
-                  final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                  if (!emailRegex.hasMatch(val.trim())) {
-                    return 'Please enter a valid email address';
+                  final strictEmailRegex = RegExp(
+                    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                  );
+                  if (!strictEmailRegex.hasMatch(val.trim())) {
+                    return 'Please enter a valid, real email address';
                   }
                   return null;
                 },
@@ -517,8 +618,8 @@ class _CreateDealTabState extends State<CreateDealTab> {
                   prefixIcon: Icon(Icons.attach_money),
                 ),
                 validator: (val) {
-                  if (val == null || val.isEmpty) return 'Enter amount';
-                  if (double.tryParse(val) == null) return 'Enter a valid number';
+                  if (val == null || val.trim().isEmpty) return 'Enter amount';
+                  if (double.tryParse(val.trim()) == null) return 'Enter a valid number';
                   return null;
                 },
               ),
