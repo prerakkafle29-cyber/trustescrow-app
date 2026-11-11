@@ -118,7 +118,7 @@ class DashboardTab extends StatelessWidget {
   final List<EscrowDeal> deals;
   final VoidCallback onNewDeal;
 
-  const DashboardTab({super.key, required this.deals, required: this.onNewDeal});
+  const DashboardTab({super.key, required this.deals, required this.onNewDeal});
 
   @override
   Widget build(BuildContext context) {
@@ -259,7 +259,11 @@ class CreateDealTab extends StatefulWidget {
   final Function(EscrowDeal) onCreate;
   final VoidCallback onSuccess;
 
-  const CreateDealTab({super.key, required this.onCreate, required: this.onSuccess});
+  const CreateDealTab({
+    super.key,
+    required this.onCreate,
+    required this.onSuccess,
+  });
 
   @override
   State<CreateDealTab> createState() => _CreateDealTabState();
@@ -270,6 +274,14 @@ class _CreateDealTabState extends State<CreateDealTab> {
   final _titleController = TextEditingController();
   final _partyController = TextEditingController();
   final _amountController = TextEditingController();
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _partyController.dispose();
+    _amountController.dispose();
+    super.dispose();
+  }
 
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
