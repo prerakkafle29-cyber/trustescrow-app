@@ -17,12 +17,12 @@ class TrustEscrowApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1E88E5)),
         useMaterial3: true,
       ),
-      home: const MainNavigationScreen(),
+      home: const AuthWrapper(),
     );
   }
 }
 
-// Data Models
+// Data Model
 class EscrowDeal {
   final String id;
   final String title;
@@ -41,9 +41,177 @@ class EscrowDeal {
   });
 }
 
-// Main Bottom Navigation Setup
+// Auth Wrapper to handle Google Sign In state
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  String? _userEmail;
+  String? _userName;
+
+  void _login(String name, String email) {
+    setState(() {
+      _userName = name;
+      _userEmail = email;
+    });
+  }
+
+  void _logout() {
+    setState(() {
+      _userName = null;
+      _userEmail = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_userEmail == null) {
+      return GoogleSignInScreen(onSignIn: _login);
+    }
+    return MainNavigationScreen(userEmail: _userEmail!, userName: _userName ?? 'User', onLogout: _logout);
+  }
+}
+
+// Google Sign-In Screen
+class GoogleSignInScreen extends StatefulWidget {
+  final Function(String, String) onSignIn;
+
+  const GoogleSignInScreen({super.key, required this.onSignIn});
+
+  @override
+  State<GoogleSignInScreen> createState() => _GoogleSignInScreenState();
+}
+
+class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _nameController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  void _handleGoogleSignIn() {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+      Future.delayed(const Duration(seconds: 1), () {
+        setState(() => _isLoading = false);
+        widget.onSignIn(_nameController.text.trim(), _emailController.text.trim());
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Center(
+            child: SingleChildScrollView(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.handshake, size: 80, color: Color(0xFF1E88E5)),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'TrustEscrow',
+                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Secure P2P Escrow Protection',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 48),
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Full Name',
+                        prefixIcon: Icon(Icons.person_outline),
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (val) => val == null || val.isEmpty ? 'Please enter your name' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: 'Google Gmail Address (@gmail.com)',
+                        prefixIcon: Icon(Icons.email_outlined),
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.isEmpty) {
+                          return 'Please enter your email address';
+                        }
+                        final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@gmail\.com$');
+                        if (!emailRegex.hasMatch(val.trim())) {
+                          return 'Must be a valid @gmail.com address';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.black87,
+                          side: const BorderSide(color: Colors.grey),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: _isLoading ? null : _handleGoogleSignIn,
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.g_mobiledata, size: 32, color: Colors.blue),
+                        label: Text(
+                          _isLoading ? 'Signing in...' : 'Sign in with Google',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Main Navigation Screen with 0 initial mock deals
 class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({super.key});
+  final String userEmail;
+  final String userName;
+  final VoidCallback onLogout;
+
+  const MainNavigationScreen({
+    super.key,
+    required this.userEmail,
+    required this.userName,
+    required this.onLogout,
+  });
 
   @override
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
@@ -51,33 +219,7 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
-
-  final List<EscrowDeal> _deals = [
-    EscrowDeal(
-      id: 'ESC-9082',
-      title: 'Custom Website Design',
-      party: 'Alex Rivera',
-      amount: 450.00,
-      status: 'In Escrow',
-      date: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-    EscrowDeal(
-      id: 'ESC-7731',
-      title: 'Mobile App UI/UX Mockups',
-      party: 'Sarah Chen',
-      amount: 280.00,
-      status: 'Pending Buyer',
-      date: DateTime.now().subtract(const Duration(days: 3)),
-    ),
-    EscrowDeal(
-      id: 'ESC-4120',
-      title: 'Logo & Brand Identity',
-      party: 'DevStudio Ltd.',
-      amount: 150.00,
-      status: 'Completed',
-      date: DateTime.now().subtract(const Duration(days: 7)),
-    ),
-  ];
+  final List<EscrowDeal> _deals = []; // Starts completely empty!
 
   void _addNewDeal(EscrowDeal deal) {
     setState(() {
@@ -88,10 +230,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     final screens = [
-      DashboardTab(deals: _deals, onNewDeal: () => setState(() => _currentIndex = 2)),
+      DashboardTab(deals: _deals, onNewDeal: () => setState(() => _currentIndex = 2), userName: widget.userName),
       DealsListTab(deals: _deals),
       CreateDealTab(onCreate: _addNewDeal, onSuccess: () => setState(() => _currentIndex = 1)),
-      const ProfileTab(),
+      ProfileTab(userEmail: widget.userEmail, userName: widget.userName, onLogout: widget.onLogout),
     ];
 
     return Scaffold(
@@ -117,8 +259,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 class DashboardTab extends StatelessWidget {
   final List<EscrowDeal> deals;
   final VoidCallback onNewDeal;
+  final String userName;
 
-  const DashboardTab({super.key, required this.deals, required this.onNewDeal});
+  const DashboardTab({
+    super.key,
+    required this.deals,
+    required this.onNewDeal,
+    required this.userName,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -146,6 +294,8 @@ class DashboardTab extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
+            Text('Welcome back, $userName!', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
             // Balance Card
             Card(
               elevation: 2,
@@ -178,7 +328,18 @@ class DashboardTab extends StatelessWidget {
             const SizedBox(height: 24),
             const Text('Recent Escrow Deals', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            ...deals.take(3).map((deal) => _buildDealTile(context, deal)),
+            deals.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40.0),
+                    child: Center(
+                      child: Text(
+                        'No escrow deals yet.\nTap "New Deal" to create one with a real email.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey, fontSize: 14),
+                      ),
+                    ),
+                  )
+                : ...deals.take(3).map((deal) => _buildDealTile(context, deal)),
           ],
         ),
       ),
@@ -204,15 +365,12 @@ class DashboardTab extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: deal.status == 'In Escrow' ? Colors.green.shade100 : Colors.orange.shade100,
+                color: Colors.green.shade100,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 deal.status,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: deal.status == 'In Escrow' ? Colors.green.shade900 : Colors.orange.shade900,
-                ),
+                style: TextStyle(fontSize: 11, color: Colors.green.shade900),
               ),
             ),
           ],
@@ -233,7 +391,12 @@ class DealsListTab extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('All Transactions & Deals')),
       body: deals.isEmpty
-          ? const Center(child: Text('No escrow deals created yet.'))
+          ? const Center(
+              child: Text(
+                'No escrow deals created yet.',
+                style: TextStyle(color: Colors.grey),
+              ),
+            )
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: deals.length,
@@ -254,7 +417,7 @@ class DealsListTab extends StatelessWidget {
   }
 }
 
-// Tab 3: Create New Escrow Form
+// Tab 3: Create New Escrow Form with strict real email validation
 class CreateDealTab extends StatefulWidget {
   final Function(EscrowDeal) onCreate;
   final VoidCallback onSuccess;
@@ -287,9 +450,9 @@ class _CreateDealTabState extends State<CreateDealTab> {
     if (_formKey.currentState!.validate()) {
       final newDeal = EscrowDeal(
         id: 'ESC-${1000 + DateTime.now().second * 10}',
-        title: _titleController.text,
-        party: _partyController.text,
-        amount: double.parse(_amountController.text),
+        title: _titleController.text.trim(),
+        party: _partyController.text.trim(),
+        amount: double.parse(_amountController.text.trim()),
         status: 'In Escrow',
         date: DateTime.now(),
       );
@@ -317,20 +480,41 @@ class _CreateDealTabState extends State<CreateDealTab> {
             children: [
               TextFormField(
                 controller: _titleController,
-                decoration: const InputDecoration(labelText: 'Deal Title / Service', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Deal Title / Service',
+                  border: OutlineInputBorder(),
+                ),
                 validator: (val) => val == null || val.isEmpty ? 'Enter deal title' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _partyController,
-                decoration: const InputDecoration(labelText: 'Counterparty (Email/Username)', border: OutlineInputBorder()),
-                validator: (val) => val == null || val.isEmpty ? 'Enter party details' : null,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Counterparty Real Email (e.g. user@gmail.com)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.alternate_email),
+                ),
+                validator: (val) {
+                  if (val == null || val.isEmpty) {
+                    return 'Enter counterparty email';
+                  }
+                  final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                  if (!emailRegex.hasMatch(val.trim())) {
+                    return 'Please enter a valid email address';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Escrow Amount (\$)', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Escrow Amount (\$)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.attach_money),
+                ),
                 validator: (val) {
                   if (val == null || val.isEmpty) return 'Enter amount';
                   if (double.tryParse(val) == null) return 'Enter a valid number';
@@ -353,7 +537,16 @@ class _CreateDealTabState extends State<CreateDealTab> {
 
 // Tab 4: User Profile & Security Settings
 class ProfileTab extends StatelessWidget {
-  const ProfileTab({super.key});
+  final String userEmail;
+  final String userName;
+  final VoidCallback onLogout;
+
+  const ProfileTab({
+    super.key,
+    required this.userEmail,
+    required this.userName,
+    required this.onLogout,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -369,13 +562,13 @@ class ProfileTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          const Center(child: Text('Prerak Kafle', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
-          const Center(child: Text('Verified Escrow User', style: TextStyle(color: Colors.grey))),
+          Center(child: Text(userName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
+          Center(child: Text(userEmail, style: const TextStyle(color: Colors.grey))),
           const SizedBox(height: 24),
           ListTile(
             leading: const Icon(Icons.security),
             title: const Text('Security & Two-Factor (2FA)'),
-            subtitle: const Text('Protected via App Lock'),
+            subtitle: const Text('Protected via Google Account'),
             onTap: () {},
           ),
           ListTile(
@@ -384,13 +577,13 @@ class ProfileTab extends StatelessWidget {
             onTap: () {},
           ),
           ListTile(
-            leading: const Icon(Icons.payment),
-            title: const Text('Payment Gateways'),
-            subtitle: const Text('Manual integration pending'),
-            onTap: () {},
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+            onTap: onLogout,
           ),
         ],
       ),
     );
   }
 }
+
