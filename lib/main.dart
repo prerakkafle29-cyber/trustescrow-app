@@ -1,23 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  try {
-    // Manual initialization completely bypasses native resource lookup errors
-    await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: "YOUR_API_KEY",
-        appId: "YOUR_APP_ID",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        projectId: "YOUR_PROJECT_ID",
-      ),
-    );
-  } catch (e) {
-    debugPrint("Firebase init error: $e");
-  }
-
   runApp(const TrustEscrowApp());
 }
 
@@ -28,13 +12,54 @@ class TrustEscrowApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        appBar: AppBar(title: const Text('TrustEscrow')),
-        body: const Center(
-          child: Text(
-            'App & Manual Firebase Initialized!',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
+      title: 'TrustEscrow',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        useMaterial3: true,
+      ),
+      home: const HomeScreen(),
+    );
+  }
+}
+
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('TrustEscrow Dashboard'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Welcome back, Prerak!',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Your app is running stable and crash-free.',
+              style: TextStyle(color: Colors.grey, fontSize: 14),
+            ),
+            const Spacer(),
+            Center(
+              fiter: ImageFiltered(imageFilter: ...), // placeholder
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Button tapped successfully!')),
+                  );
+                },
+                icon: const Icon(Icons.check_circle),
+                label: const Text('Test App Action'),
+              ),
+            ),
+            const Spacer(),
+          ],
         ),
       ),
     );
