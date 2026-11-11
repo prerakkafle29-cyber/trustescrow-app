@@ -4,14 +4,14 @@ import 'package:firebase_core/firebase_core.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase manually with explicit options to bypass native file lookup errors
   try {
+    // Manual initialization completely bypasses native resource lookup errors
     await Firebase.initializeApp(
       options: const FirebaseOptions(
-        apiKey: "YOUR_API_KEY", // Replace with your actual Firebase API Key
-        appId: "YOUR_APP_ID",     // Replace with your actual Firebase App ID
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID", // Replace with Sender ID
-        projectId: "YOUR_PROJECT_ID", // Replace with your Firebase Project ID
+        apiKey: "YOUR_API_KEY",
+        appId: "YOUR_APP_ID",
+        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+        projectId: "YOUR_PROJECT_ID",
       ),
     );
   } catch (e) {
@@ -32,9 +32,8 @@ class TrustEscrowApp extends StatelessWidget {
         appBar: AppBar(title: const Text('TrustEscrow')),
         body: const Center(
           child: Text(
-            'App & Manual Firebase Initialized Successfully!',
+            'App & Manual Firebase Initialized!',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
           ),
         ),
       ),
