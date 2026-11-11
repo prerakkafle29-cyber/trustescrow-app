@@ -23,6 +23,12 @@ jobs:
           flutter-version: '3.19.0'
           cache: false
 
+      - name: Generate Fresh V2 Android Scaffold
+        run: |
+          flutter create temp_android_gen --platforms=android --org com.cyber --project-name trustescrow
+          rm -rf android
+          cp -r temp_android_gen/android ./android
+
       - name: Get Dependencies
         run: flutter pub get
 
