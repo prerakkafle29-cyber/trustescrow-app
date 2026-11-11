@@ -219,7 +219,7 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
-  final List<EscrowDeal> _deals = []; // Starts completely empty!
+  final List<EscrowDeal> _deals = [];
 
   void _addNewDeal(EscrowDeal deal) {
     setState(() {
@@ -328,18 +328,19 @@ class DashboardTab extends StatelessWidget {
             const SizedBox(height: 24),
             const Text('Recent Escrow Deals', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            deals.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40.0),
-                    child: Center(
-                      child: Text(
-                        'No escrow deals yet.\nTap "New Deal" to create one with a real email.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey, fontSize: 14),
-                      ),
-                    ),
-                  )
-                : ...deals.take(3).map((deal) => _buildDealTile(context, deal)),
+            if (deals.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 40.0),
+                child: Center(
+                  child: Text(
+                    'No escrow deals yet.\nTap "New Deal" to create one with a real email.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+                ),
+              )
+            else
+              ...deals.take(3).map((deal) => _buildDealTile(context, deal)),
           ],
         ),
       ),
@@ -586,4 +587,3 @@ class ProfileTab extends StatelessWidget {
     );
   }
 }
-
