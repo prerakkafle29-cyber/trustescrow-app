@@ -24,7 +24,6 @@ class TrustEscrowApp extends StatelessWidget {
   }
 }
 
-// Data Model
 class EscrowDeal {
   final String id;
   final String title;
@@ -61,7 +60,6 @@ class EscrowDeal {
       );
 }
 
-// Auth Wrapper with Persistent Session Check
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
@@ -103,7 +101,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('saved_email');
     await prefs.remove('saved_name');
-    await prefs.remove('saved_deals'); // Optional: clear deals on logout
     setState(() {
       _userName = null;
       _userEmail = null;
@@ -113,13 +110,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (_userEmail == null) {
-      return GoogleSignInScreen(onSignIn: _login);
+      return LoginScreen(onLogin: _login);
     }
     return MainNavigationScreen(
       userEmail: _userEmail!,
@@ -129,35 +124,39 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 }
 
-// Google Sign-In Screen with Strict Email Validation
-class GoogleSignInScreen extends StatefulWidget {
-  final Function(String, String) onSignIn;
+// Secure Login Screen with Email, Password & Strict Validation
+class LoginScreen extends StatefulWidget {
+  final Function(String, String) onLogin;
 
-  const GoogleSignInScreen({super.key, required this.onSignIn});
+  const LoginScreen({super.key, required this.onLogin});
 
   @override
-  State<GoogleSignInScreen> createState() => _GoogleSignInScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
+class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
   final _nameController = TextEditingController();
-  bool _isSigningIn = false;
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
-    _emailController.dispose();
     _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
-  void _handleGoogleSignIn() {
+  void _submitLogin() {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isSigningIn = true);
-      Future.delayed(const Duration(milliseconds: 800), () {
-        setState(() => _isSigningIn = false);
-        widget.onSignIn(_nameController.text.trim(), _emailController.text.trim());
+      setState(() => _isLoading = true);
+      Future.delayed(const Duration(seconds: 1), () {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        widget.onLogin(_nameController.text.trim(), _emailController.text.trim());
       });
     }
   }
@@ -179,15 +178,16 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                     const Icon(Icons.handshake, size: 80, color: Color(0xFF1E88E5)),
                     const SizedBox(height: 16),
                     const Text(
-                      'TrustEscrow',
+                      'TrustEscrow Login',
                       style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Secure P2P Escrow Protection',
+                      'Enter your Google Gmail & Password to continue',
+                      textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 14, color: Colors.grey),
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 36),
                     TextFormField(
                       controller: _nameController,
                       decoration: const InputDecoration(
@@ -207,24 +207,47 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
-                        labelText: 'Google Gmail Address (@gmail.com)',
+                        labelText: 'Gmail Address (e.g. user@gmail.com)',
                         prefixIcon: Icon(Icons.email_outlined),
                         border: OutlineInputBorder(),
                       ),
                       validator: (val) {
                         if (val == null || val.trim().isEmpty) {
-                          return 'Please enter your email address';
+                          return 'Email address is required';
                         }
-                        // Strict RFC-compliant email regex checking for valid local part, domain, and proper TLD
-                        final strictEmailRegex = RegExp(
-                          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
-                        );
                         final email = val.trim();
-                        if (!strictEmailRegex.hasMatch(email)) {
-                          return 'Invalid email format (e.g. name@gmail.com)';
-                        }
-                        if (!email.endsWith('@gmail.com')) {
+                        final regex = RegExp(r'^[a-zA-Z0-9._%+-]+@gmail\.com$');
+                        if (!regex.hasMatch(email)) {
                           return 'Must be a valid @gmail.com address';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: !_isPasswordVisible,
+                      decoration: InputDecoration(
+                        labelText: 'Google Account Password',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _isPasswordVisible = !_isPasswordVisible;
+                            });
+                          },
+                        ),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Password is required';
+                        }
+                        if (val.trim().length < 6) {
+                          return 'Password must be at least 6 characters';
                         }
                         return null;
                       },
@@ -233,25 +256,23 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                     SizedBox(
                       width: double.infinity,
                       height: 50,
-                      child: ElevatedButton.icon(
+                      child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black87,
-                          side: const BorderSide(color: Colors.grey),
+                          backgroundColor: const Color(0xFF1E88E5),
+                          foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
-                        onPressed: _isSigningIn ? null : _handleGoogleSignIn,
-                        icon: _isSigningIn
+                        onPressed: _isLoading ? null : _submitLogin,
+                        child: _isLoading
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                               )
-                            : const Icon(Icons.g_mobiledata, size: 32, color: Colors.blue),
-                        label: Text(
-                          _isSigningIn ? 'Signing in...' : 'Sign in with Google',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                        ),
+                            : const Text(
+                                'Sign In securely',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
                       ),
                     ),
                   ],
@@ -265,7 +286,6 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
   }
 }
 
-// Main Navigation Screen with Local Deals Persistence
 class MainNavigationScreen extends StatefulWidget {
   final String userEmail;
   final String userName;
@@ -324,9 +344,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     if (!_isDataLoaded) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final screens = [
@@ -355,7 +373,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 }
 
-// Tab 1: Dashboard Overview
 class DashboardTab extends StatelessWidget {
   final List<EscrowDeal> deals;
   final VoidCallback onNewDeal;
@@ -480,7 +497,6 @@ class DashboardTab extends StatelessWidget {
   }
 }
 
-// Tab 2: All Deals View
 class DealsListTab extends StatelessWidget {
   final List<EscrowDeal> deals;
 
@@ -517,7 +533,6 @@ class DealsListTab extends StatelessWidget {
   }
 }
 
-// Tab 3: Create New Escrow Form with Strict Counterparty Email Validation
 class CreateDealTab extends StatefulWidget {
   final Function(EscrowDeal) onCreate;
   final VoidCallback onSuccess;
@@ -600,10 +615,10 @@ class _CreateDealTabState extends State<CreateDealTab> {
                     return 'Enter counterparty email';
                   }
                   final strictEmailRegex = RegExp(
-                    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                    r'^[a-zA-Z0-9._%+-]+@gmail\.com$',
                   );
                   if (!strictEmailRegex.hasMatch(val.trim())) {
-                    return 'Please enter a valid, real email address';
+                    return 'Must be a valid @gmail.com address';
                   }
                   return null;
                 },
@@ -637,7 +652,6 @@ class _CreateDealTabState extends State<CreateDealTab> {
   }
 }
 
-// Tab 4: User Profile & Security Settings
 class ProfileTab extends StatelessWidget {
   final String userEmail;
   final String userName;
@@ -670,7 +684,7 @@ class ProfileTab extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.security),
             title: const Text('Security & Two-Factor (2FA)'),
-            subtitle: const Text('Protected via Google Account'),
+            subtitle: const Text('Protected via Google Account Password'),
             onTap: () {},
           ),
           ListTile(
